@@ -3,6 +3,11 @@ name: Checks
 
 on: [push]
 
+env:
+  DB_NAME: testdb
+  DB_USER: testuser
+  DB_PASS: testpass
+
 jobs:
   lint-test:
     name: Lint and Test
