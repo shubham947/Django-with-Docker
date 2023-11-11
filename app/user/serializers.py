@@ -1,8 +1,8 @@
 """
 Serializers for User API view
 """
-from django.contrib.auth import get_user_model
-# from django.utils.translation import gettext as _
+from django.contrib.auth import get_user_model, authenticate
+from django.utils.translation import gettext as _
 
 from rest_framework import serializers
 
@@ -27,3 +27,31 @@ class UserSerializer(serializers.ModelSerializer):
             user.set_password(password)
             user.save()
         return user
+
+
+class AuthTokenSerializer(serializers.Serializer):
+    """Serializer for JWT"""
+    email = serializers.EmailField()
+    phone = serializers.CharField()
+    password = serializers.CharField(
+        style={'input_type': 'password'},
+        trim_whitespace=False
+    )
+
+    def validate(self, attrs):
+        """Validate and authenticate user."""
+        email = attrs.get('email')
+        phone = attrs.get('phone')
+        password = attrs.get('password')
+        user = authenticate(
+            request=self.context.get('request'),
+            username=email if email else phone,
+            password=password
+        )
+
+        if not user:
+            err_msg = _('Unable to authenticate with provided credentials.')
+            raise serializers.ValidationError(err_msg, code='authorization')
+
+        attrs['user'] = user
+        return attrs

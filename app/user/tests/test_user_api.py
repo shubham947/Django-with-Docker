@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 
 CREATE_USER_URL = reverse('user:create')
 USER_ACCOUNT_URL = reverse('user:account')
+TOKEN_URL = reverse('user:token-obtain-pair')
 
 
 def create_user(**params):
@@ -109,6 +110,34 @@ class PublicUserApiTests(TestCase):
         """Test fetching user account without logging in is unauthorized."""
         res = self.client.get(USER_ACCOUNT_URL)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_token_for_user(self):
+        """Test JWT token generation for valid credentials."""
+        user = {
+            'email': 'testuser@example.com',
+            'password': 'Testpass@123'
+        }
+        create_user(**user)
+
+        payload = {
+            'username': user['email'],
+            'password': user['password']
+        }
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('access', res.data)
+        self.assertIn('refresh', res.data)
+
+    def test_create_token_bad_credentials(self):
+        """Test error in JWT token generation with bad credentials."""
+        create_user(email='user@example.com', password='Test@123')
+
+        payload = {'email': 'user@example.com', 'password': 'WrongPass@123'}
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn('access', res.data)
 
 
 class PrivateUserApiTests(TestCase):
